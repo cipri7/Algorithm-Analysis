@@ -1,4 +1,6 @@
 //  C program to insert and delete a node in AVL tree
+// using the balance factor
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -7,7 +9,7 @@ struct Node {
     int key;
     struct Node *left;
     struct Node *right;
-    int height;
+    int balance;
 };
 
 // A utility function to get maximum of two integers
@@ -19,9 +21,15 @@ int max(int a, int b) {
 int height(struct Node *N) {
     if (N == NULL)
         return 0;
-    return N->height;
+    return max(height(N->left), height(N->right)) + 1;
 }
 
+// Get Balance factor of node N
+int getBalance(struct Node *node){
+    if (node == NULL)
+        return 0;
+    return height(node->left) - height(node->right);
+}
 
 
 /* Helper function that allocates a new node with the given key and
@@ -33,13 +41,12 @@ struct Node *newNode(int key) {
     node->key = key;
     node->left = NULL;
     node->right = NULL;
-    node->height = 1; // new node is initially added as a leaf
+    node->balance = 0; // new node is initially added as a leaf
     return (node);
 }
 
 // A utility function to right rotate subtree rooted with y
-struct Node *rightRotate(struct Node *y)
-{
+struct Node *rightRotate(struct Node *y){
     struct Node *x = y->left;
     struct Node *T2 = x->right;
 
@@ -47,17 +54,16 @@ struct Node *rightRotate(struct Node *y)
     x->right = y;
     y->left = T2;
 
-    // Update heights
-    y->height = max(height(y->left), height(y->right)) + 1;
-    x->height = max(height(x->left), height(x->right)) + 1;
+    // Update balance factor
+    y->balance = getBalance(y);
+    x->balance = getBalance(x);
 
     // Return new root
     return x;
 }
 
 // A utility function to left rotate subtree rooted with x
-struct Node *leftRotate(struct Node *x)
-{
+struct Node *leftRotate(struct Node *x){
     struct Node *y = x->right;
     struct Node *T2 = y->left;
 
@@ -66,25 +72,17 @@ struct Node *leftRotate(struct Node *x)
     x->right = T2;
 
     //  Update heights
-    x->height = max(height(x->left), height(x->right)) + 1;
-    y->height = max(height(y->left), height(y->right)) + 1;
+    x->balance = getBalance(x);
+    y->balance = getBalance(y);
 
     // Return new root
     return y;
 }
 
-// Get Balance factor of node N
-int getBalance(struct Node *node)
-{
-    if (node == NULL)
-        return 0;
-    return height(node->left) - height(node->right);
-}
 
 // Recursive function to insert a key in the subtree rooted
 // with node and returns the new root of the subtree.
-struct Node *insert(struct Node *node, int key)
-{
+struct Node *insert(struct Node *node, int key){
     /* 1.  Perform the normal BST insertion */
     if (node == NULL)
         return (newNode(key));
@@ -96,34 +94,29 @@ struct Node *insert(struct Node *node, int key)
     else // Equal keys are not allowed in BST
         return node;
 
-    /* 2. Update height of the ancestor node */
-    node->height = 1 + max(height(node->left), height(node->right));
-
-    /* 3. Get the balance factor of the ancestor
-          node to check whether this node became
-          unbalanced */
-    int balance = getBalance(node);
+    /* 2. Update balance of the ancestor node */
+    node->balance = getBalance(node);
 
     // If this node becomes unbalanced, then
     // there are 4 cases
 
     // Left Left Case
-    if (balance > 1 && key < node->left->key)
+    if (node->balance > 1 && key < node->left->key)
         return rightRotate(node);
 
     // Right Right Case
-    if (balance < -1 && key > node->right->key)
+    if (node->balance < -1 && key > node->right->key)
         return leftRotate(node);
 
     // Left Right Case
-    if (balance > 1 && key > node->left->key)
+    if (node->balance > 1 && key > node->left->key)
     {
         node->left = leftRotate(node->left);
         return rightRotate(node);
     }
 
     // Right Left Case
-    if (balance < -1 && key < node->right->key)
+    if (node->balance < -1 && key < node->right->key)
     {
         node->right = rightRotate(node->right);
         return leftRotate(node);
@@ -220,34 +213,29 @@ struct Node* deleteNode(struct Node* root, int key)
     if (root == NULL) 
     return root; 
  
-    // STEP 2: UPDATE HEIGHT OF THE CURRENT NODE 
-    root->height = 1 + max(height(root->left), height(root->right)); 
- 
-    // STEP 3: GET THE BALANCE FACTOR OF 
-    // THIS NODE (to check whether this 
-    // node became unbalanced) 
-    int balance = getBalance(root); 
+    // STEP 2: UPDATE BALANCE OF THE CURRENT NODE 
+    root->balance = getBalance(root); 
  
     // If this node becomes unbalanced, 
     // then there are 4 cases 
  
     // Left Left Case 
-    if (balance > 1 && getBalance(root->left) >= 0) 
+    if (root->balance > 1 && root->left->balance >= 0) 
         return rightRotate(root); 
  
     // Left Right Case 
-    if (balance > 1 && getBalance(root->left) < 0) 
+    if (root->balance > 1 && root->left->balance < 0) 
     { 
         root->left = leftRotate(root->left); 
         return rightRotate(root); 
     } 
  
     // Right Right Case 
-    if (balance < -1 && getBalance(root->right) <= 0) 
+    if (root->balance < -1 && root->right->balance <= 0) 
         return leftRotate(root); 
  
     // Right Left Case 
-    if (balance < -1 && getBalance(root->right) > 0) 
+    if (root->balance < -1 && root->right->balance > 0) 
     { 
         root->right = rightRotate(root->right); 
         return leftRotate(root); 
@@ -304,11 +292,6 @@ int main()
     printf("\n");
     root = deleteNode(root, 30);
     inOrder(root);
-
-    // if(search(root, 255))
-    //     printf("Found!\n");
-    // else
-    //     printf("Not found!\n");
 
     
     return 0;
